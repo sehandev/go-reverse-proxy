@@ -1,0 +1,8 @@
+{
+    "baseUrl": "bbook.gq",
+    "mainPort": 3000,
+    "subdomains": {
+      "www": 4000,
+      "map": 3000
+    }
+}
