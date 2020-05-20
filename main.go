@@ -1,52 +1,76 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strconv"
+	"os"
 	"strings"
+	"time"
 )
 
-var mapProxy map[string]*httputil.ReverseProxy
-
-func initProxy() {
-	// Initialize proxy with subdomains
-
-	mapProxy = make(map[string]*httputil.ReverseProxy)
-	mapPort := map[string]int{
-		"www":   4000,
-		"test":  4000,
-		"map":   3000,
-		"bbook": 4000}
-
-	for subdomain, port := range mapPort {
-		remote, _ := url.Parse("http://localhost:" + strconv.Itoa(port))
-		mapProxy[subdomain] = httputil.NewSingleHostReverseProxy(remote)
-	}
+type redirectHostStruct struct {
+	FromHost string `json:"fromHost"`
+	ToHost   string `json:"toHost"`
 }
 
-func subdomainProxy() func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Ben", "Rad")
-
-		// Check url contains subdomain
-		subdomain := strings.Split(r.Host, ".")[0]
-
-		mapProxy[subdomain].ServeHTTP(w, r)
-	}
+type settingStruct struct {
+	Host            string               `json:"host"`
+	Port            int                  `json:"port"`
+	RedirectHostArr []redirectHostStruct `json:"redirectHostArr"`
 }
+
+var settingJSONPath string
 
 func main() {
-	initProxy()
-	
-	log.Println("Reverse proxy start")
+	if len(os.Args) != 2 {
+		settingJSONPath = "setting.json"
+		fmt.Printf("Use setting.json -> You can change file with command " +
+			"( ./go-virtual-host [*.json] )\n\n")
+	} else {
+		settingJSONPath = os.Args[1]
+	}
 
-	http.HandleFunc("/", subdomainProxy())
-
-	err := http.ListenAndServe(":80", nil)
+	setting, err := readSettingJSON()
 	if err != nil {
-		panic(err)
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	mux := http.NewServeMux()
+
+	for _, redirctHost := range setting.RedirectHostArr {
+		urlString, err := url.Parse("http://" + redirctHost.ToHost)
+		if err != nil {
+			panic(err)
+		}
+		proxy := httputil.NewSingleHostReverseProxy(urlString)
+		log.Printf("Reverse Proxy %s -> %s\n", redirctHost.FromHost, redirctHost.ToHost)
+		mux.HandleFunc(redirctHost.FromHost+"/", proxyHandler(proxy))
+	}
+
+	// Server setup
+	address := fmt.Sprintf("%s:%d", setting.Host, setting.Port)
+	server := &http.Server{
+		Addr:           address,
+		Handler:        mux,
+		ReadTimeout:    3 * time.Second,
+		WriteTimeout:   3 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	log.Println("Listening on", address)
+
+	panic(server.ListenAndServe())
+}
+
+func proxyHandler(p *httputil.ReverseProxy) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accessIP := strings.Split(r.RemoteAddr, ":")[0]  // "1.2.3.4:5678" -> "1.2.3.4"
+		decodedURI, _ := url.QueryUnescape(r.RequestURI) // URI decode
+		log.Printf("%s - %s %s %s %s\n", accessIP, r.Host, r.Method, decodedURI, r.Proto)
+		p.ServeHTTP(w, r)
 	}
 }
