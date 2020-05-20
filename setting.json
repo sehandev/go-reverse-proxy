@@ -1,8 +1,14 @@
 {
-    "baseUrl": "bbook.gq",
-    "mainPort": 3000,
-    "subdomains": {
-      "www": 4000,
-      "map": 3000
-    }
+	"host": "0",
+	"port": 80,
+	"redirectHostArr": [
+		{
+			"fromHost": "map.bbook.gq",
+			"toHost": "localhost:3000"
+		},
+		{
+			"fromHost": "www.bbook.gq",
+			"toHost": "localhost:4000"
+		}
+	]
 }
