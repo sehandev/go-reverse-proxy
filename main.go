@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -23,6 +22,7 @@ type settingStruct struct {
 }
 
 var settingJSONPath string
+var logger = NewColorLogger()
 
 func main() {
 	if len(os.Args) != 2 {
@@ -47,7 +47,7 @@ func main() {
 			panic(err)
 		}
 		proxy := httputil.NewSingleHostReverseProxy(urlString)
-		log.Printf("Reverse Proxy %s -> %s\n", redirctHost.FromHost, redirctHost.ToHost)
+		logger.info("Reverse Proxy %s -> %s", redirctHost.FromHost, redirctHost.ToHost)
 		mux.HandleFunc(redirctHost.FromHost+"/", proxyHandler(proxy))
 	}
 
@@ -61,7 +61,7 @@ func main() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	log.Println("Listening on", address)
+	logger.info("Listening on %s", address)
 
 	panic(server.ListenAndServe())
 }
@@ -70,7 +70,7 @@ func proxyHandler(p *httputil.ReverseProxy) func(http.ResponseWriter, *http.Requ
 	return func(w http.ResponseWriter, r *http.Request) {
 		accessIP := strings.Split(r.RemoteAddr, ":")[0]  // "1.2.3.4:5678" -> "1.2.3.4"
 		decodedURI, _ := url.QueryUnescape(r.RequestURI) // URI decode
-		log.Printf("%s - %s %s %s %s\n", accessIP, r.Host, r.Method, decodedURI, r.Proto)
+		logger.debug("%s - %s %s %s \n %s", accessIP, r.Host, r.Method, r.Proto, decodedURI)
 		p.ServeHTTP(w, r)
 	}
 }
