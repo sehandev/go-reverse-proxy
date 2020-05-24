@@ -5,18 +5,19 @@ import (
 	"log"
 )
 
-// ColorLogger comment
-type ColorLogger struct {
+// colorLogger comment
+type colorLogger struct {
 	debugStart   string
 	infoStart    string
 	warningStart string
 	errorStart   string
 	end          string
+	checker      accessChecker
 }
 
-// NewColorLogger construct
-func NewColorLogger() *ColorLogger {
-	logger := new(ColorLogger)
+// newColorLogger construct
+func newColorLogger() *colorLogger {
+	logger := new(colorLogger)
 	logger.debugStart = "\033[94m"
 	logger.infoStart = "\033[92m"
 	logger.warningStart = "\033[93m"
@@ -25,23 +26,31 @@ func NewColorLogger() *ColorLogger {
 	return logger
 }
 
-func (logger *ColorLogger) debug(format string, a ...interface{}) {
-	log.Printf("%s%s%s", logger.debugStart, fmt.Sprintf(format, a...), logger.end)
+func (logger *colorLogger) debug(format string, a ...interface{}) {
+	message := fmt.Sprintf(format, a...)
+	log.Printf("%s%s%s", logger.debugStart, message, logger.end)
+	logger.checker.newLog(message)
 }
 
-func (logger *ColorLogger) info(format string, a ...interface{}) {
-	log.Printf("%s%s%s", logger.infoStart, fmt.Sprintf(format, a...), logger.end)
+func (logger *colorLogger) info(format string, a ...interface{}) {
+	message := fmt.Sprintf(format, a...)
+	log.Printf("%s%s%s", logger.infoStart, message, logger.end)
+	logger.checker.newLog(message)
 }
 
-func (logger *ColorLogger) warning(format string, a ...interface{}) {
-	log.Printf("%s%s%s", logger.warningStart, fmt.Sprintf(format, a...), logger.end)
+func (logger *colorLogger) warning(format string, a ...interface{}) {
+	message := fmt.Sprintf(format, a...)
+	log.Printf("%s%s%s", logger.warningStart, message, logger.end)
+	logger.checker.newLog(message)
 }
 
-func (logger *ColorLogger) error(format string, a ...interface{}) {
-	log.Printf("%s%s%s", logger.errorStart, fmt.Sprintf(format, a...), logger.end)
+func (logger *colorLogger) error(format string, a ...interface{}) {
+	message := fmt.Sprintf(format, a...)
+	log.Printf("%s%s%s", logger.errorStart, message, logger.end)
+	logger.checker.newLog(message)
 }
 
-func (logger *ColorLogger) test(format string, a ...interface{}) {
+func (logger *colorLogger) test(format string, a ...interface{}) {
 	logger.debug(format, a...)
 	logger.info(format, a...)
 	logger.warning(format, a...)

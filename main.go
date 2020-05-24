@@ -22,7 +22,7 @@ type settingStruct struct {
 }
 
 var settingJSONPath string
-var logger = NewColorLogger()
+var logger = newColorLogger()
 
 func main() {
 	if len(os.Args) != 2 {
